@@ -213,24 +213,31 @@ export function HeightTransition({ visible, children }: HeightTransitionProps) {
 
 interface AutoHeightContainerProps {
   children: ReactNode;
+  snapGrowth?: boolean;
   snapRevision?: string;
 }
 
 const AUTO_HEIGHT_INITIAL_SETTLE_MS = 250;
 const AUTO_HEIGHT_WIDTH_RESIZE_SETTLE_MS = 120;
 
-function useSnapHeightGrowth(): boolean {
+function useSnapHeightGrowth(snapGrowth: boolean): boolean {
   const isPointerCoarse = usePointerCoarse();
   const prefersReducedMotion = usePrefersReducedMotion();
-  return isPointerCoarse || prefersReducedMotion || !supportsScrollAnchoring();
+  return (
+    snapGrowth ||
+    isPointerCoarse ||
+    prefersReducedMotion ||
+    !supportsScrollAnchoring()
+  );
 }
 
 export function AutoHeightContainer({
   children,
+  snapGrowth = false,
   snapRevision,
 }: AutoHeightContainerProps) {
-  const snapGrowth = useSnapHeightGrowth();
-  const durationMs = snapGrowth ? 0 : HEIGHT_TRANSITION_DURATION_MS;
+  const shouldSnapGrowth = useSnapHeightGrowth(snapGrowth);
+  const durationMs = shouldSnapGrowth ? 0 : HEIGHT_TRANSITION_DURATION_MS;
   const wrapperRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const snapToCurrentHeightRef = useRef<(() => void) | null>(null);

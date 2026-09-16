@@ -21,6 +21,69 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+function stubFinePointerScrollAnchoring(): void {
+  vi.spyOn(window, "matchMedia").mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }));
+  vi.stubGlobal("CSS", {
+    supports: (property: string, value: string) =>
+      property === "overflow-anchor" && value === "none",
+  });
+}
+
+function renderTimelineHeight(threadRuntimeDisplayStatus: "active" | "idle") {
+  const queryClient = new QueryClient();
+  const view = render(
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <ThreadTimelineRows
+          threadId="thr_main"
+          timelineRows={[
+            conversationRow({
+              id: "user_message",
+              role: "user",
+              seq: 1,
+              text: "Request",
+            }),
+          ]}
+          threadRuntimeDisplayStatus={threadRuntimeDisplayStatus}
+          workspaceRootPath={undefined}
+        />
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+  const rowList = view.container.querySelector<HTMLElement>(
+    '[data-timeline-row-list="top-level"]',
+  );
+  const heightWrapper = rowList?.parentElement?.parentElement;
+  if (!heightWrapper) {
+    throw new Error("Timeline height wrapper was not rendered");
+  }
+  return heightWrapper;
+}
+
+it("snaps active timeline growth while idle timelines retain desktop easing", () => {
+  vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+  stubFinePointerScrollAnchoring();
+
+  expect(renderTimelineHeight("active").style.transition).toContain(
+    "height 0ms",
+  );
+
+  cleanup();
+
+  expect(renderTimelineHeight("idle").style.transition).toContain(
+    "height 180ms",
+  );
+});
+
 it("snap-syncs the timeline height when older rows are prepended", () => {
   vi.stubGlobal("ResizeObserver", ResizeObserverStub);
   vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(

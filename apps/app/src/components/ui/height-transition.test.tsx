@@ -166,9 +166,11 @@ function stubScrollAnchoringSupport(supported: boolean): void {
 }
 
 describe("AutoHeightContainer growth easing", () => {
-  function renderWrapper(): HTMLElement {
+  function renderWrapper({
+    snapGrowth = false,
+  }: { snapGrowth?: boolean } = {}): HTMLElement {
     const view = render(
-      <AutoHeightContainer>
+      <AutoHeightContainer snapGrowth={snapGrowth}>
         <span>Streaming response</span>
       </AutoHeightContainer>,
     );
@@ -186,6 +188,16 @@ describe("AutoHeightContainer growth easing", () => {
     stubScrollAnchoringSupport(true);
 
     expect(renderWrapper().style.transition).toContain("height 180ms");
+  });
+
+  it("snaps growth when requested", () => {
+    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+    stubMediaQueries(new Set());
+    stubScrollAnchoringSupport(true);
+
+    expect(renderWrapper({ snapGrowth: true }).style.transition).toContain(
+      "height 0ms",
+    );
   });
 
   it("snaps growth on a coarse pointer", () => {
