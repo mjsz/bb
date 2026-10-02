@@ -8,6 +8,73 @@ import {
 import { ProviderRequestDecodeError } from "@get-bb/plugin-sdk/provider-bridge";
 
 describe("decodeCodexInteractiveRequest", () => {
+  it("maps nonblocking default-mode questions into the user-question interaction", () => {
+    expect(
+      decodeCodexInteractiveRequest({
+        id: 12,
+        method: "item/tool/requestUserInput",
+        params: {
+          threadId: "t1",
+          turnId: "turn-1",
+          itemId: "item-1",
+          isBlocking: false,
+          autoResolutionMs: null,
+          questions: [
+            {
+              id: "q1",
+              header: "Choice",
+              question: "Which option?",
+              options: [{ label: "A", description: "First" }],
+              isOther: true,
+              isSecret: false,
+            },
+          ],
+        },
+      }),
+    ).toMatchObject({
+      requestId: 12,
+      providerThreadId: "t1",
+      turnId: "turn-1",
+      payload: {
+        kind: "user_question",
+        questions: [
+          {
+            id: "q1",
+            prompt: "Which option?",
+            options: [{ value: "q1:option-1", label: "A" }],
+            allowFreeText: true,
+          },
+        ],
+      },
+    });
+  });
+
+  it("rejects secret questions that the BB form cannot protect", () => {
+    expect(() =>
+      decodeCodexInteractiveRequest({
+        id: 13,
+        method: "item/tool/requestUserInput",
+        params: {
+          threadId: "t1",
+          turnId: "turn-1",
+          itemId: "item-1",
+          isBlocking: true,
+          autoResolutionMs: null,
+          questions: [
+            {
+              id: "secret",
+              header: "Secret",
+              question: "Enter token",
+              options: null,
+              isOther: true,
+              isSecret: true,
+            },
+          ],
+        },
+      }),
+    ).toThrowError(ProviderRequestDecodeError);
+  });
+
   it("maps command approval requests into pending interaction payloads", () => {
     expect(
       decodeCodexInteractiveRequest({
