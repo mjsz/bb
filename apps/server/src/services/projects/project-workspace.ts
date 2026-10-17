@@ -1,10 +1,11 @@
-import { getProjectSourceByHost } from "@bb/db";
+import { getDefaultProjectSource, getProjectSourceByHost } from "@bb/db";
 import type { ProjectWorkspaceRoutingQuery } from "@bb/server-contract";
 import type { AppDeps } from "../../types.js";
 import { ApiError } from "../../errors.js";
 import {
   assertUsableHostId,
   requirePrimaryHostId,
+  resolvePrimaryHostId,
 } from "../hosts/primary-host.js";
 import {
   requireEnvironment,
@@ -44,6 +45,21 @@ function resolveProjectSourceOnHost(
   return { hostId: source.hostId, path: source.path };
 }
 
+function resolveProjectWorkspaceHostId(
+  deps: Pick<AppDeps, "config" | "db" | "hub">,
+  projectId: string,
+): string {
+  const primaryHostId = resolvePrimaryHostId(deps);
+  if (primaryHostId !== null) {
+    return primaryHostId;
+  }
+  const defaultSource = getDefaultProjectSource(deps.db, projectId);
+  if (defaultSource !== null) {
+    return defaultSource.hostId;
+  }
+  return requirePrimaryHostId(deps);
+}
+
 export function projectCheckoutPathOnHost(
   deps: Pick<AppDeps, "db">,
   projectId: string,
@@ -73,7 +89,8 @@ export function resolveProjectWorkspaceTarget(
     return { hostId: environment.hostId, path: environment.path };
   }
 
-  const hostId = args.hostId ?? requirePrimaryHostId(deps);
+  const hostId =
+    args.hostId ?? resolveProjectWorkspaceHostId(deps, args.projectId);
   assertUsableHostId(deps, { hostId });
   const source = resolveProjectSourceOnHost(deps, {
     hostId,
@@ -120,7 +137,8 @@ export function resolveProjectCommandWorkspace(
     };
   }
 
-  const hostId = args.hostId ?? requirePrimaryHostId(deps);
+  const hostId =
+    args.hostId ?? resolveProjectWorkspaceHostId(deps, args.projectId);
   assertUsableHostId(deps, { hostId });
   return {
     hostId,

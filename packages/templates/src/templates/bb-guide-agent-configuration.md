@@ -58,6 +58,9 @@ Skills (.bb/skills/):
   update are restricted to editable, user-owned skills. These workspace-scoped
   commands default to `BB_PROJECT_ID`, then the personal project; pass
   `--project` or `--environment` when a different workspace is required.
+  Without `--environment`, bb reads the project's checkout on the server
+  machine, or the checkout of the project's default source when the server
+  has no host daemon.
 
   Use `bb skill search [query]` to browse skills.sh (no query lists what is
   trending; `--page` starts at 0 and `--per-page` defaults to 24). JSON

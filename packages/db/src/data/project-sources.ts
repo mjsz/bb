@@ -201,6 +201,21 @@ export function updateProjectSource(
   return toProjectSource(updated.row);
 }
 
+export function getDefaultProjectSource(db: DbConnection, projectId: string) {
+  const source =
+    db
+      .select()
+      .from(projectSources)
+      .where(
+        and(
+          eq(projectSources.projectId, projectId),
+          eq(projectSources.isDefault, true),
+        ),
+      )
+      .get() ?? null;
+  return source ? toProjectSource(source) : null;
+}
+
 export function getProjectSourceByHost(
   db: DbConnection,
   projectId: string,
