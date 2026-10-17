@@ -38,7 +38,9 @@ Skills (.bb/skills/):
 
   A skill is a reusable instruction file that bb injects into a thread and
   exposes to the agent as a slash command. Place project skills under
-  .bb/skills/<name>/SKILL.md in a workspace. Each SKILL.md has YAML frontmatter
+  .bb/skills/<name>/SKILL.md in a workspace. `.bb/skills` may be a symlink as
+  long as it resolves inside the workspace; a link that leaves the workspace
+  is not read. Each SKILL.md has YAML frontmatter
   with `name` (lowercase, hyphenated, matching the directory) and `description`,
   followed by the instruction body.
 

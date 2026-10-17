@@ -201,6 +201,67 @@ describe("readWorkspaceAgentContext", () => {
     ]);
   });
 
+  it("reads linked instructions and skills that stay inside the workspace", async () => {
+    const root = await makeWorkspace();
+    await writeFile(
+      path.join(root, "skills", "alpha", "SKILL.md"),
+      skillMarkdown("alpha"),
+    );
+    await writeFile(path.join(root, "AGENTS.md"), "Be terse.");
+    await fs.mkdir(path.join(root, ".bb"));
+    await fs.symlink(
+      path.join("..", "skills"),
+      path.join(root, ".bb", "skills"),
+    );
+    await fs.symlink(
+      path.join("..", "AGENTS.md"),
+      path.join(root, ".bb", "AGENTS.md"),
+    );
+
+    const context = await readWorkspaceAgentContext({
+      type: "host.read_workspace_agent_context",
+      ...readOptions,
+      rootPath: root,
+      sharedSkillRoots: EMPTY_PROVIDER_NATIVE_ROOTS,
+    });
+
+    expect(context).toMatchObject({
+      agentInstructions: "Be terse.",
+      projectSkills: [
+        {
+          kind: "file",
+          directoryName: "alpha",
+          content: skillMarkdown("alpha"),
+        },
+      ],
+      projectSkillsTruncated: false,
+    });
+  });
+
+  it("rejects a linked skills root that leaves the workspace", async () => {
+    const root = await makeWorkspace();
+    const outside = await makeWorkspace();
+    await writeFile(
+      path.join(outside, "skills", "leaked", "SKILL.md"),
+      skillMarkdown("leaked"),
+    );
+    await fs.mkdir(path.join(root, ".bb"));
+    await fs.symlink(
+      path.join(outside, "skills"),
+      path.join(root, ".bb", "skills"),
+    );
+
+    await expect(
+      readWorkspaceAgentContext({
+        type: "host.read_workspace_agent_context",
+        ...readOptions,
+        includeAgentInstructions: false,
+        rootPath: root,
+        sharedSkillRoots: EMPTY_PROVIDER_NATIVE_ROOTS,
+      }),
+    ).rejects.toMatchObject({ code: "invalid_path" });
+  });
+
   it("rejects an escaping skills root even when it contains no files", async () => {
     const root = await makeWorkspace();
     const outside = await makeWorkspace();

@@ -113,6 +113,40 @@ afterEach(async () => {
 });
 
 describe("resolveSkillScanRoots + discoverSkills", () => {
+  it("follows a bb project root link that stays inside the workspace", async () => {
+    const fixture = await makeWorkspaceFixture();
+    await writeSkill(
+      path.join(fixture.cwd, "skills", "in-repo", "SKILL.md"),
+      "in-repo",
+    );
+    await mkdir(path.join(fixture.cwd, ".bb"), { recursive: true });
+    await symlink(
+      path.join("..", "skills"),
+      path.join(fixture.cwd, ".bb", "skills"),
+      "dir",
+    );
+
+    const skills = await listSkills(fixture, fixture.cwd, skillRoots({}));
+
+    expect(byName(skills, "in-repo")).toMatchObject({
+      rootKind: "bb-project",
+      linked: true,
+      filePath: path.join(fixture.cwd, ".bb", "skills", "in-repo", "SKILL.md"),
+    });
+  });
+
+  it("ignores a bb project root link that leaves the workspace", async () => {
+    const fixture = await makeWorkspaceFixture();
+    const outside = path.join(tempRoot, "outside-skills");
+    await writeSkill(path.join(outside, "leaked", "SKILL.md"), "leaked");
+    await mkdir(path.join(fixture.cwd, ".bb"), { recursive: true });
+    await symlink(outside, path.join(fixture.cwd, ".bb", "skills"), "dir");
+
+    const skills = await listSkills(fixture, fixture.cwd, skillRoots({}));
+
+    expect(byName(skills, "leaked")).toBeUndefined();
+  });
+
   it("classifies the host-owned bb project root and the declared provider roots only", async () => {
     const fixture = await makeWorkspaceFixture();
     const files = {

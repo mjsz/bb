@@ -14,7 +14,6 @@ import { SKILL_FILE_NAME } from "../command-discovery.js";
 import { isFsErrorWithCode } from "../fs-errors.js";
 import { readFileForTransport } from "./file-read.js";
 import { listSharedSkills } from "./list-skills.js";
-import { resolveNonSymlinkDirectoryPath } from "./root-path.js";
 
 const PROJECT_SKILLS_RELATIVE_SEGMENTS = [".bb", "skills"] as const;
 const AGENT_INSTRUCTIONS_RELATIVE_SEGMENTS = [".bb", "AGENTS.md"] as const;
@@ -63,10 +62,14 @@ async function listProjectSkillDirectoryNames(
   excludeNames: string[],
 ): Promise<string[]> {
   try {
-    const realSkillsRoot = await resolveNonSymlinkDirectoryPath({
-      description: "Path",
-      path: skillsRootPath,
-    });
+    const skillsRootStat = await fs.stat(skillsRootPath);
+    if (!skillsRootStat.isDirectory()) {
+      throw new CommandDispatchError(
+        "invalid_path",
+        `Path "${skillsRootPath}" is not a directory`,
+      );
+    }
+    const realSkillsRoot = await fs.realpath(skillsRootPath);
     const realRoot = await fs.realpath(rootPath);
     if (!isPathWithinDirectory(realRoot, realSkillsRoot)) {
       throw new CommandDispatchError(

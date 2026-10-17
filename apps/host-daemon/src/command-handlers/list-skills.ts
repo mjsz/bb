@@ -37,8 +37,10 @@ const SHARED_SKILLS_PROVIDER_ID = "bb-shared";
 function createBbSkillScanRoot(
   rootPath: string,
   rootKind: Extract<SkillRootKind, `bb-${string}`>,
+  boundaryPath: string,
 ): SkillScanRoot {
   return {
+    boundaryPath,
     rootPath,
     shape: "skill",
     namePrefix: "",
@@ -61,6 +63,7 @@ function resolveBbSkillScanRoots(
       createBbSkillScanRoot(
         path.join(resolution.cwd, ".bb", "skills"),
         "bb-project",
+        resolution.cwd,
       ),
     );
   }
